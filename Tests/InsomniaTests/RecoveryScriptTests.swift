@@ -637,6 +637,20 @@ final class RecoveryScriptTests: XCTestCase {
         XCTAssertTrue(fx.log().contains("malformed"), fx.log())
     }
 
+    /// The scripts read the journal too: a key the app writes as a boolean
+    /// must not arrive as a string here, or the backstop would carry on with
+    /// a journal the app cannot decode.
+    func testANonBooleanDisplaySleepRequestedMakesTheJournalMalformed() throws {
+        try fx.writeSession(endsAt: Date(timeIntervalSinceNow: -60))
+        try fx.writeState(#"{"sleepDisabledByUs":true,"lowPowerSetByUs":false,"frozenProcesses":[],"dockerFrozen":false,"displaySleepRequested":"yes"}"#)
+
+        let r = try fx.run(fx.backstop)
+
+        XCTAssertNotEqual(r.status, 0, "an undecodable journal stops the backstop")
+        XCTAssertEqual(fx.calls(), [], "no privileged command with an unreadable journal")
+        XCTAssertTrue(fx.log().contains("displaySleepRequested is a string, not a bool"), fx.log())
+    }
+
     func testExpiredSessionWithMissingJournalRunsNothingPrivileged() throws {
         try fx.writeSession(endsAt: Date(timeIntervalSinceNow: -60))
 

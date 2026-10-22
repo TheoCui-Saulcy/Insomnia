@@ -549,8 +549,10 @@ final class FakeDisplayDimmer: DisplayDimming, @unchecked Sendable {
         lock.withLock { _sleepRequests += 1 }
     }
 
-    func wake() {
+    @discardableResult
+    func wake() -> Bool {
         lock.withLock { _wakes += 1 }
+        return true
     }
 }
 

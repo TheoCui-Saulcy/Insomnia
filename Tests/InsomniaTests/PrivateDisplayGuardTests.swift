@@ -52,7 +52,8 @@ struct BrightnessOnlyDimmer: DisplayDimming {
     func readBrightness() throws -> Float { try inner.readBrightness() }
     func setBrightness(_ value: Float) throws { try inner.setBrightness(value) }
     func requestSleep() throws { try power.requestSleep() }
-    func wake() { power.wake() }
+    @discardableResult
+    func wake() -> Bool { power.wake() }
     func isAsleep() -> Bool { power.isAsleep() }
     func refusal() -> String? { inner.refusal() }
 }

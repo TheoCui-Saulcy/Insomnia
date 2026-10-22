@@ -20,6 +20,12 @@ set -euo pipefail
 # Command Line Tools' Swift is older than Package.swift requires); the fixed
 # path stays the default.
 SWIFT="${INSOMNIA_SWIFT:-/usr/bin/swift}"
+# Absolute paths only: a bare name would make "$SWIFT" a PATH lookup and pick
+# whatever comes first, which is what these fixed paths exist to prevent.
+case "$SWIFT" in
+  /*) ;;
+  *) printf '%s\n' 'INSOMNIA_SWIFT must be an absolute path' >&2; exit 2 ;;
+esac
 CODESIGN=/usr/bin/codesign
 PLUTIL=/usr/bin/plutil
 RM=/bin/rm
