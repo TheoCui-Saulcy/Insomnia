@@ -413,9 +413,17 @@ final class PackagingTests: XCTestCase {
     func testBuildAppBuildsWithTheSwiftOverrideWhenOneIsSet() throws {
         let (script, calls) = try patchedBuildApp(recordingCodesign: true)
         let binroot = scratch.appendingPathComponent("binroot", isDirectory: true)
-        let lines = try String(contentsOf: script, encoding: .utf8).components(separatedBy: "\n")
-        // The fixture's fake swift reports this path; the override below
-        // reports it too, so the build can finish and be inspected.
+        // The shared fixture pins SWIFT to a fake path, which removes the
+        // environment lookup this test is about: put it back around the same
+        // fake, as the script ships it.
+        var lines = try String(contentsOf: script, encoding: .utf8).components(separatedBy: "\n")
+        let hits = lines.indices.filter { lines[$0].hasPrefix("SWIFT=") }
+        guard hits.count == 1 else { return XCTFail("build-app.sh must have exactly one SWIFT= line") }
+        let pinned = lines[hits[0]]
+        let fakeDefault = String(pinned.dropFirst("SWIFT='".count).dropLast())
+        lines[hits[0]] = "SWIFT=\"${INSOMNIA_SWIFT:-\(fakeDefault)}\""
+        try lines.joined(separator: "\n").write(to: script, atomically: true, encoding: .utf8)
+
         let override = scratch.appendingPathComponent("override-swift")
         try TestScripts.write("""
         #!/bin/bash
@@ -423,15 +431,14 @@ final class PackagingTests: XCTestCase {
         for a in "$@"; do [[ "$a" == --show-bin-path ]] && { echo "\(binroot.path)"; exit 0; }; done
         exit 0
         """, to: override)
-        XCTAssertEqual(lines.filter { $0.hasPrefix("SWIFT=") }.count, 1)
 
         let out = scratch.appendingPathComponent("out", isDirectory: true)
         let r = try run("/bin/bash", [script.path, "--output", out.path], environment: ["PATH": "/usr/bin:/bin", "HOME": scratch.path, "INSOMNIA_SWIFT": override.path])
 
         XCTAssertEqual(r.status, 0, r.output)
         let recorded = try String(contentsOf: calls, encoding: .utf8)
-        XCTAssertTrue(recorded.contains("override build"), "the override toolchain built the app")
-        XCTAssertFalse(recorded.contains("swift build"), "the fixed default was not used")
+        XCTAssertTrue(recorded.contains("override build"), "the override toolchain built the app: \(recorded)")
+        XCTAssertFalse(recorded.contains("swift build"), "the pinned default was not used: \(recorded)")
         XCTAssertTrue(FileManager.default.fileExists(atPath: out.appendingPathComponent("Insomnia.app/Contents/MacOS/Insomnia").path))
     }
 
