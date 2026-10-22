@@ -62,15 +62,15 @@ final class PlaceholderStatus: StatusSource {
 enum StatusLines {
     /// "Lid: closed · 4.1 W · Wi-Fi: iPhone". Unknown parts are omitted.
     static func machine(lidClosed: Bool, watts: Double?, wifiSSID: String?, batteryPercent: Int?, isCharging: Bool) -> String {
-        var parts: [String] = ["Lid: \(lidClosed ? "closed" : "open")"]
+        var parts: [String] = [lidClosed ? String(localized: "Lid: closed") : String(localized: "Lid: open")]
         if let w = watts {
             parts.append(String(format: "%.1f W", w))
         }
         if let p = batteryPercent {
-            parts.append(isCharging ? "\(p)% charging" : "\(p)%")
+            parts.append(isCharging ? "\(p)% " + String(localized: "charging") : "\(p)%")
         }
         if let ssid = wifiSSID, !ssid.isEmpty {
-            parts.append("Wi-Fi: \(ssid)")
+            parts.append(String(format: NSLocalizedString("Wi-Fi: %@", comment: "menu status line"), ssid))
         }
         return parts.joined(separator: " \u{00B7} ")
     }
@@ -79,13 +79,15 @@ enum StatusLines {
     static func actions(frozenCount: Int, dockerPaused: Bool, lastGap: TimeInterval?) -> String? {
         var parts: [String] = []
         if frozenCount > 0 {
-            parts.append(frozenCount == 1 ? "1 app frozen" : "\(frozenCount) apps frozen")
+            parts.append(frozenCount == 1
+                ? String(localized: "1 app frozen")
+                : String(format: NSLocalizedString("%lld apps frozen", comment: "menu status line, count"), frozenCount))
         }
         if dockerPaused {
-            parts.append("Docker paused")
+            parts.append(String(localized: "Docker paused"))
         }
         if let gap = lastGap, gap > 0 {
-            parts.append("last gap \(Int(gap.rounded()))s")
+            parts.append(String(format: NSLocalizedString("last gap %llds", comment: "menu status line, seconds"), Int(gap.rounded())))
         }
         return parts.isEmpty ? nil : parts.joined(separator: " \u{00B7} ")
     }

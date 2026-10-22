@@ -32,6 +32,16 @@
 "%@ is still muted from a lid close; Insomnia restores it when it reconnects" = "%@ 因合盖仍处于静音状态；重新连接后 Insomnia 会恢复它的音量";
 "Lid simulation build: scripts/simulate-lid.sh is honoured during sessions" = "合盖模拟版本：会话期间会响应 scripts/simulate-lid.sh";
 
+/* —— 菜单状态行 —— */
+"Lid: open" = "上盖：打开";
+"Lid: closed" = "上盖：合盖";
+"charging" = "充电中";
+"Wi-Fi: %@" = "Wi-Fi：%@";
+"1 app frozen" = "1 个应用已冻结";
+"%lld apps frozen" = "%lld 个应用已冻结";
+"Docker paused" = "Docker 已暂停";
+"last gap %llds" = "上次间隔 %lld 秒";
+
 /* —— 设置窗口：分组与标签 —— */
 "Session" = "会话";
 "default" = "默认";
