@@ -32,6 +32,17 @@ enum StatusMenu {
     static let settingsTitle = String(localized: "Settings\u{2026}")
     static let quitTitle = String(localized: "Quit Insomnia")
 
+    /// Warning lines. `systemOrange` is what macOS uses for attention in
+    /// text, but on the light menu material it is too pale to read: a deeper
+    /// amber carries the same meaning there, and the dark menu keeps the
+    /// system colour.
+    static let warningColor = NSColor(name: nil) { appearance in
+        if appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua {
+            return .systemOrange
+        }
+        return NSColor(srgbRed: 0.72, green: 0.33, blue: 0.0, alpha: 1)
+    }
+
     /// Disabled status lines, a separator, then Settings… and Quit. Empty
     /// lines are dropped, and the separator only appears when something
     /// precedes it, so the menu never opens with a stray rule at the top.
@@ -142,11 +153,14 @@ enum StatusMenu {
                 let entry = NSMenuItem(title: item.title, action: nil, keyEquivalent: "")
                 entry.isEnabled = false
                 // NSMenuItem has no font of its own; the attributed title is
-                // the only way to make one line smaller or orange.
-                var attributes: [NSAttributedString.Key: Any] = [.font: lineFont]
-                if item.kind == .warning {
-                    attributes[.foregroundColor] = NSColor.systemOrange
-                }
+                // the only way to make one line smaller or orange. The color
+                // is set explicitly for both kinds: a disabled item without
+                // one is painted in AppKit's dimmed control color, which on a
+                // light menu bar left the status line barely readable.
+                let attributes: [NSAttributedString.Key: Any] = [
+                    .font: lineFont,
+                    .foregroundColor: item.kind == .warning ? warningColor : NSColor.labelColor,
+                ]
                 entry.attributedTitle = NSAttributedString(string: item.title, attributes: attributes)
                 menu.addItem(entry)
             case .settings:
