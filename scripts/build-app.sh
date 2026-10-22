@@ -117,6 +117,20 @@ fi
 BIN="$("$SWIFT" build -c release ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"} --show-bin-path)/Insomnia"
 [[ -x "$BIN" ]] || { echo "binary not found at $BIN" >&2; exit 1; }
 
+# Localized strings live beside the icon so Bundle.main finds them: the
+# interface stays English and reads zh-Hans when the system prefers it. Every
+# table is linted before anything is assembled, since a malformed one silently
+# falls back to English and must not leave a half-built bundle behind.
+LPROJ=()
+for lproj in "$ROOT"/Resources/*.lproj; do
+  [[ -d "$lproj" ]] || continue
+  for strings in "$lproj"/*.strings; do
+    [[ -f "$strings" ]] || continue
+    "$PLUTIL" -lint "$strings" >/dev/null
+  done
+  LPROJ+=("$lproj")
+done
+
 # 2. Bundle ------------------------------------------------------------------
 APP="$OUTPUT/Insomnia.app"
 step "Assembling $APP"
@@ -125,15 +139,7 @@ step "Assembling $APP"
 "$CP" "$BIN" "$APP/Contents/MacOS/Insomnia"
 "$CP" "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
 "$CP" "$ROOT/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
-# Localized strings live beside the icon so Bundle.main finds them: the
-# interface stays English and reads zh-Hans when the system prefers it. Each
-# file is linted, since a malformed one silently falls back to English.
-for lproj in "$ROOT"/Resources/*.lproj; do
-  [[ -d "$lproj" ]] || continue
-  for strings in "$lproj"/*.strings; do
-    [[ -f "$strings" ]] || continue
-    "$PLUTIL" -lint "$strings" >/dev/null
-  done
+for lproj in ${LPROJ[@]+"${LPROJ[@]}"}; do
   "$CP" -R "$lproj" "$APP/Contents/Resources/"
 done
 # backstop.sh goes into the bundle before it is signed, so the signature's
