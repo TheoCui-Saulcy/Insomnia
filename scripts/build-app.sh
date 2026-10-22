@@ -15,8 +15,11 @@
 set -euo pipefail
 
 # Fixed tool paths: never taken from PATH. Tests patch these lines in a
-# private copy of the script.
-SWIFT=/usr/bin/swift
+# private copy of the script. INSOMNIA_SWIFT points the build at another
+# Swift (a swift.org toolchain under /Library/Developer/Toolchains, when the
+# Command Line Tools' Swift is older than Package.swift requires); the fixed
+# path stays the default.
+SWIFT="${INSOMNIA_SWIFT:-/usr/bin/swift}"
 CODESIGN=/usr/bin/codesign
 PLUTIL=/usr/bin/plutil
 RM=/bin/rm
