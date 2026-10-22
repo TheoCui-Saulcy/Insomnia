@@ -7576,7 +7576,11 @@ private final class ScriptFixture {
         posix_spawn_file_actions_addopen(&actions, 0, "/dev/null", O_RDONLY, 0)
         posix_spawn_file_actions_addopen(&actions, 1, "/dev/null", O_WRONLY, 0)
         posix_spawn_file_actions_addopen(&actions, 2, "/dev/null", O_WRONLY, 0)
-        posix_spawn_file_actions_addchdir(&actions, root.path)
+        // Darwin's `_np` spelling: the POSIX `addchdir` arrived in the macOS
+        // 26 SDK, and this target compiles at the deployment target
+        // Package.swift names, so the older symbol is the one that builds
+        // and runs on both a macOS 26/27 runner and an older toolchain.
+        posix_spawn_file_actions_addchdir_np(&actions, root.path)
 
         var attr: posix_spawnattr_t?
         posix_spawnattr_init(&attr)
