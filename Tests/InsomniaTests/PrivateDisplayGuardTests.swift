@@ -276,10 +276,11 @@ final class RefusedDarkeningTests: XCTestCase {
         XCTAssertNil(try h.store.loadState()?.savedKeyboardBrightness)
     }
 
-    /// Both devices refused: nothing is darkened or journaled, so nothing
-    /// on open would wake the display. The close does not ask it to sleep,
-    /// and the open has nothing to wake.
-    func testBothRefusedLeavesTheDisplayAwake() async throws {
+    /// Both devices refused: nothing is darkened or journaled, so the public
+    /// sleep request is the only thing that turns the panel off. The close
+    /// journals that request, and the open wakes the display for it: without
+    /// the request the panel would stay lit behind a closed lid.
+    func testBothRefusedSleepsTheDisplayThroughTheRequestAndWakesItOnOpen() async throws {
         let (m, actions) = makeDarkeningOnly(
             display: refusedDisplay,
             keyboard: CoreBrightnessKeyboardBacklight(loadClass: { ChangedSignatureKeyboardClient.self })
@@ -288,15 +289,17 @@ final class RefusedDarkeningTests: XCTestCase {
 
         await actions.onClose()
 
-        XCTAssertEqual(h.display.sleepRequests, 0, "no journaled brightness, so no wake on open: no sleep request")
+        XCTAssertEqual(h.display.sleepRequests, 1, "nothing to darken, so the sleep request is what turns the panel off")
         let state = try XCTUnwrap(try h.store.loadState())
         XCTAssertFalse(state.brightnessJournaled)
-        XCTAssertTrue(logText().contains("display sleep not requested: no display or keyboard brightness is journaled"), logText())
+        XCTAssertTrue(state.displaySleepRequested, "the open wakes what this close turned off")
+        XCTAssertTrue(logText().contains("display sleep requested"), logText())
         XCTAssertNil(m.lastError)
 
         await actions.onOpen()
 
-        XCTAssertEqual(h.display.wakes, 0)
+        XCTAssertEqual(h.display.wakes, 1)
+        XCTAssertFalse(try XCTUnwrap(try h.store.loadState()).displaySleepRequested)
         XCTAssertNil(m.lastError)
     }
 
