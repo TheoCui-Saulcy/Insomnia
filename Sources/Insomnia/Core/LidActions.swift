@@ -328,18 +328,32 @@ final class LidActions {
             Log.info("display sleep not requested: no display or keyboard brightness is journaled, so nothing would wake the display on open")
             return
         }
+        // Journal first, like every other change to the machine: a request
+        // whose record could not be written would leave a sleeping panel
+        // that the open has no reason to wake, so it is not sent at all.
+        let recordedRequest = !state.brightnessJournaled
+        if recordedRequest {
+            do {
+                try manager.journal { $0.displaySleepRequested = true }
+            } catch {
+                Log.error("display sleep not requested: the journal could not record it: \(error.localizedDescription)")
+                return
+            }
+        }
         do {
             try display.requestSleep()
             Log.info("display sleep requested")
-            if !state.brightnessJournaled {
-                do {
-                    try manager.journal { $0.displaySleepRequested = true }
-                } catch {
-                    Log.error("display sleep requested but the journal could not record it: \(error.localizedDescription)")
-                }
-            }
         } catch {
             Log.info("display sleep request failed: \(error.localizedDescription)")
+            // Nothing was put to sleep, so the record is dropped instead of
+            // being left for the open to wake a panel that never slept.
+            if recordedRequest {
+                do {
+                    try manager.journal { $0.displaySleepRequested = false }
+                } catch {
+                    Log.error("could not drop the display sleep record: \(error.localizedDescription)")
+                }
+            }
         }
     }
 
