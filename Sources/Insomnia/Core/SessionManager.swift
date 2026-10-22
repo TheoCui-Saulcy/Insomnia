@@ -2101,8 +2101,16 @@ final class SessionManager {
         // Brightness entries are read with the owed edits applied: an entry
         // this process already settled is not restored again.
         let kept = effectiveState
-        if kept.brightnessJournaled {
+        if kept.brightnessJournaled || kept.displaySleepRequested {
             display.wake()
+        }
+        // A panel this put to sleep with no brightness journaled (the
+        // private calls were refused, so only the public sleep request ran)
+        // has nothing else to undo it, so the request is recorded and
+        // cleared here: lid open, the reconcile at launch, and restoreAll
+        // all reach this.
+        if kept.displaySleepRequested {
+            _ = clearUndone("display woken after a lid close turned it off") { $0.displaySleepRequested = false }
         }
         // Read before the entries are cleared: the re-assert below needs them.
         var restoredDisplay: Float?

@@ -314,18 +314,30 @@ final class LidActions {
         }
 
         // The wake that undoes this request runs on open, and on reconcile
-        // after a relaunch, only for a journaled brightness. With nothing
-        // journaled (both devices refused or unreadable) nothing would wake
-        // a panel this put to sleep, so it is not asked to sleep.
+        // after a relaunch, only for a journaled brightness -- or for the
+        // flag below. With nothing journaled and a dimmer that would answer
+        // (both devices refused or unreadable) nothing would wake a panel
+        // this put to sleep, so it is not asked to sleep. A Mac whose
+        // private calls are refused still gets the request: the public
+        // sleep call is the only thing that turns the panel off there, and
+        // the flag is what the open wakes for.
         // With the owed edits applied: an entry this process already
         // settled is not restored, so the open would not wake for it.
-        guard manager.effectiveState.brightnessJournaled else {
+        let state = manager.effectiveState
+        guard state.brightnessJournaled || display.refusal() != nil else {
             Log.info("display sleep not requested: no display or keyboard brightness is journaled, so nothing would wake the display on open")
             return
         }
         do {
             try display.requestSleep()
             Log.info("display sleep requested")
+            if !state.brightnessJournaled {
+                do {
+                    try manager.journal { $0.displaySleepRequested = true }
+                } catch {
+                    Log.error("display sleep requested but the journal could not record it: \(error.localizedDescription)")
+                }
+            }
         } catch {
             Log.info("display sleep request failed: \(error.localizedDescription)")
         }
