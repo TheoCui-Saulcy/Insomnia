@@ -304,6 +304,31 @@ final class RefusedDarkeningTests: XCTestCase {
         XCTAssertNil(m.lastError)
     }
 
+    /// A wake that fails keeps the record on disk: the panel the close turned
+    /// off may still be asleep, so the next open has to try again rather than
+    /// find the journal clean.
+    func testAFailedWakeKeepsTheRecordForTheNextOpen() async throws {
+        let (m, actions) = makeDarkeningOnly(
+            display: refusedDisplay,
+            keyboard: CoreBrightnessKeyboardBacklight(loadClass: { ChangedSignatureKeyboardClient.self })
+        )
+        await m.start(duration: 3600)
+        await actions.onClose()
+        XCTAssertTrue(try XCTUnwrap(try h.store.loadState()).displaySleepRequested)
+
+        h.display.wakeFails = true
+        await actions.onOpen()
+
+        XCTAssertEqual(h.display.wakes, 1, "the open asked for the wake")
+        XCTAssertTrue(try XCTUnwrap(try h.store.loadState()).displaySleepRequested, "a failed wake keeps the record")
+
+        h.display.wakeFails = false
+        await actions.onOpen()
+
+        XCTAssertEqual(h.display.wakes, 2)
+        XCTAssertFalse(try XCTUnwrap(try h.store.loadState()).displaySleepRequested, "the retry cleared it")
+    }
+
     /// The app dies between a close that journaled only the keyboard (the
     /// display refused) and the open. The relaunch reconciles with the lid
     /// open and wakes the display from the same journal entry the sleep
