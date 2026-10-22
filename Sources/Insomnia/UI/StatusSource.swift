@@ -96,10 +96,15 @@ enum StatusLines {
         let names: String
         switch browsers.count {
         case 1: names = browsers[0]
-        case 2: names = "\(browsers[0]) and \(browsers[1])"
-        default: names = browsers.dropLast().joined(separator: ", ") + ", and " + browsers.last!
+        case 2: names = String(format: NSLocalizedString("%@ and %@", comment: "two browser names"), browsers[0], browsers[1])
+        default:
+            let head = browsers.dropLast().joined(separator: String(localized: ", "))
+            names = String(format: NSLocalizedString("%@, and %@", comment: "browser list, last name"), head, browsers.last!)
         }
-        return "\u{26A0} \(names) \(browsers.count == 1 ? "is" : "are") throttled"
+        let format = browsers.count == 1
+            ? NSLocalizedString("\u{26A0} %@ is throttled", comment: "one throttled browser")
+            : NSLocalizedString("\u{26A0} %@ are throttled", comment: "several throttled browsers")
+        return String(format: format, names)
     }
 }
 
@@ -117,11 +122,11 @@ enum SleepHeldLine {
     static func line(sessionActive: Bool, sleepHeld: Bool) -> Line? {
         switch (sessionActive, sleepHeld) {
         case (true, true):
-            Line(text: "Sleep held per journal \u{2014} not verified live", isWarning: false)
+            Line(text: String(localized: "Sleep held per journal \u{2014} not verified live"), isWarning: false)
         case (true, false):
-            Line(text: "Sleep is not held \u{2014} this session is not keeping the Mac awake", isWarning: true)
+            Line(text: String(localized: "Sleep is not held \u{2014} this session is not keeping the Mac awake"), isWarning: true)
         case (false, true):
-            Line(text: "Sleep still held with no session", isWarning: true)
+            Line(text: String(localized: "Sleep still held with no session"), isWarning: true)
         case (false, false):
             nil
         }

@@ -3169,7 +3169,7 @@ final class SessionManager {
 
     /// The menu line for an output device still waiting for its volume.
     nonisolated static func stillMutedLine(_ output: SavedAudioOutput) -> String {
-        "\(output.label) is still muted from a lid close; Insomnia restores it when it reconnects"
+        String(format: NSLocalizedString("%@ is still muted from a lid close; Insomnia restores it when it reconnects", comment: "menu line for an output device"), output.label)
     }
 
     private func endBody(_ reason: EndReason, outputsWaiting: Bool) -> String {
